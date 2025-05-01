@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Semantic Search</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>PDF Semantic Search</h1>
+
+        <div class="upload-section">
+            <h2>Upload PDF</h2>
+            <input type="file" id="pdfUpload" accept=".pdf">
+            <div id="uploadStatus"></div>
+        </div>
+
+        <div class="search-section">
+            <h2>Search Documents</h2>
+            <input type="text" id="searchInput" placeholder="Enter your query...">
+            <button onclick="performSearch()">Search</button>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        // Handle file upload
+        document.getElementById('pdfUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('uploadStatus').innerHTML =
+                    data.message || data.error;
+                setTimeout(() => {
+                    document.getElementById('uploadStatus').innerHTML = '';
+                }, 3000);
+            });
+        });
+
+        // Handle search
+        function performSearch() {
+            const query = document.getElementById('searchInput').value;
+            if (!query) return;
+
+            fetch('/search', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ query: query, top_k: 5 })
+            })
+            .then(response => response.json())
+            .then(results => {
+                const resultsDiv = document.getElementById('results');
+                resultsDiv.innerHTML = results.map((result, index) => `
+                    <div class="result-item">
+                        <h3>Result ${index + 1} (${result.source} - Score: ${result.score.toFixed(3)})</h3>
+                        <p>${result.text}</p>
+                    </div>
+                `).join('');
+            });
+        }
+    </script>
+</body>
+</html>
